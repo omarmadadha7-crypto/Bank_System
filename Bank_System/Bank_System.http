@@ -1,0 +1,96 @@
+# Test requests for Visual Studio (.http file). Change @host to your launch URL (see launchSettings.json).
+# Run request 1 first, the others reuse its token.
+
+@host = https://localhost:7000
+
+### 1) Login as the seeded admin
+# @name login
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "userName": "admin",
+  "password": "Admin@12345"
+}
+
+###
+@token = {{login.response.body.$.token}}
+
+### 2) Currencies (USD and JOD are seeded)
+GET {{host}}/api/currencies
+Authorization: Bearer {{token}}
+
+### 3) Branches (Head Office is seeded)
+GET {{host}}/api/branches
+Authorization: Bearer {{token}}
+
+### 4) Create a customer (new person) in branch 1
+POST {{host}}/api/customers
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "person": {
+    "nationalId": "9991234567",
+    "firstName": "Ahmad",
+    "lastName": "Saleh",
+    "dateOfBirth": "1995-04-12",
+    "email": "ahmad.saleh@example.com",
+    "phone": "+962790000001",
+    "address": "Amman"
+  },
+  "branchId": 1
+}
+
+### 5) Open a JOD account for customer 1 (currencyId 2 = JOD, 1 = USD)
+POST {{host}}/api/accounts
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "customerId": 1,
+  "currencyId": 2,
+  "type": "Savings",
+  "pin": "1234"
+}
+
+### 6) Deposit 500 into account 1
+POST {{host}}/api/transactions/deposit
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "accountId": 1,
+  "amount": 500
+}
+
+### 7) Withdraw 50 from account 1
+POST {{host}}/api/transactions/withdraw
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "accountId": 1,
+  "amount": 50,
+  "pin": "1234"
+}
+
+### 8) Transfer 100 from account 1 to account 2 (open a second account first)
+POST {{host}}/api/transactions/transfer
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "sourceAccountId": 1,
+  "destinationAccountId": 2,
+  "amount": 100,
+  "pin": "1234"
+}
+
+### 9) Statement of account 1
+GET {{host}}/api/transactions/account/1?page=1&pageSize=20
+Authorization: Bearer {{token}}
+
+### 10) Balance of account 1
+GET {{host}}/api/accounts/1/balance
+Authorization: Bearer {{token}}
